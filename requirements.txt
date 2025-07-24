@@ -1,0 +1,21 @@
+# UIGF/SRGF Gacha Record Splitter Dependencies
+# 
+# Note: tkinter is part of Python standard library
+# On some Linux distributions, you may need to install python3-tk separately
+
+# Core dependencies (Python standard library)
+# tkinter - GUI framework
+# json - JSON processing
+# os - Operating system interface
+# threading - Multi-threading support
+# pathlib - Path handling
+
+# All core dependencies are part of Python standard library
+# No additional packages need to be installed for basic functionality
+
+# Build dependencies (for creating executable):
+pyinstaller>=6.0.0
+
+# Optional development dependencies (install separately if needed):
+# pytest>=7.0.0
+# pytest-cov>=4.0.0
