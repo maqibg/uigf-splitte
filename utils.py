@@ -215,14 +215,15 @@ def create_output_directory(path):
         return False, f"创建目录时发生未知错误：{str(e)}"
 
 
-def format_progress_message(current, total, gacha_type):
+def format_progress_message(current, total, operation_type="分离", gacha_type=None):
     """
-    格式化进度消息
+    格式化进度消息，支持不同操作类型
     
     Args:
         current (int): 当前处理的数量
         total (int): 总数量
-        gacha_type (str): 当前处理的抽卡类型
+        operation_type (str): 操作类型 ("分离", "修复", "合并")
+        gacha_type (str): 当前处理的抽卡类型（可选）
         
     Returns:
         str: 格式化的进度消息
@@ -232,10 +233,19 @@ def format_progress_message(current, total, gacha_type):
     else:
         percentage = int((current / total) * 100)
     
-    if gacha_type == "所有类型":
-        return f"正在处理记录... ({current}/{total}, {percentage}%)"
+    # 根据操作类型生成不同的消息
+    if operation_type == "修复":
+        return f"正在修复记录... ({current}/{total}, {percentage}%)"
+    elif operation_type == "合并":
+        return f"正在合并记录... ({current}/{total}, {percentage}%)"
+    elif operation_type == "分离":
+        if gacha_type and gacha_type != "所有类型":
+            return f"正在处理抽卡类型 {gacha_type}... ({current}/{total}, {percentage}%)"
+        else:
+            return f"正在处理记录... ({current}/{total}, {percentage}%)"
     else:
-        return f"正在处理抽卡类型 {gacha_type}... ({current}/{total}, {percentage}%)"
+        # 默认消息
+        return f"正在处理... ({current}/{total}, {percentage}%)"
 
 
 def extract_uid_from_data(data):
@@ -265,3 +275,203 @@ def extract_uid_from_data(data):
         
     except Exception:
         return None
+
+
+def compare_records_by_id(record1, record2):
+    """
+    根据id字段比较两条记录是否相同
+    
+    Args:
+        record1 (dict): 第一条记录
+        record2 (dict): 第二条记录
+        
+    Returns:
+        bool: 如果两条记录的id相同则返回True，否则返回False
+    """
+    try:
+        # 检查记录是否为字典类型
+        if not isinstance(record1, dict) or not isinstance(record2, dict):
+            return False
+        
+        # 检查是否都有id字段
+        if "id" not in record1 or "id" not in record2:
+            return False
+        
+        # 比较id字段值（转换为字符串进行比较以处理不同数据类型）
+        id1 = str(record1["id"]).strip()
+        id2 = str(record2["id"]).strip()
+        
+        return id1 == id2 and id1 != ""
+        
+    except Exception:
+        return False
+
+
+def validate_record_fields(record, required_fields=None):
+    """
+    验证记录字段的完整性和数据类型
+    
+    Args:
+        record (dict): 要验证的记录
+        required_fields (list): 必需字段列表，如果为None则使用默认字段
+        
+    Returns:
+        tuple: (is_valid, issues)
+               is_valid (bool): 记录是否有效
+               issues (list): 发现的问题列表，每个问题是一个字典包含type和message
+    """
+    issues = []
+    
+    try:
+        # 检查记录是否为字典类型
+        if not isinstance(record, dict):
+            issues.append({
+                "type": "invalid_type",
+                "message": "记录必须是字典对象"
+            })
+            return False, issues
+        
+        # 默认必需字段
+        if required_fields is None:
+            required_fields = [
+                "gacha_type", "time", "name", "item_type", 
+                "rank_type", "id", "uid", "count", "lang", "item_id"
+            ]
+        
+        # 检查缺失字段
+        for field in required_fields:
+            if field not in record:
+                issues.append({
+                    "type": "missing_field",
+                    "message": f"缺少必需字段: {field}"
+                })
+        
+        # 检查字段值和数据类型
+        for field, value in record.items():
+            # 检查关键字段不能为空
+            if field in ["gacha_type", "time", "id", "uid"] and (value is None or str(value).strip() == ""):
+                issues.append({
+                    "type": "empty_field",
+                    "message": f"关键字段 {field} 不能为空"
+                })
+            
+            # 检查数据类型
+            if field == "count":
+                # count字段应该是数字或可转换为数字的字符串
+                try:
+                    int(str(value))
+                except (ValueError, TypeError):
+                    issues.append({
+                        "type": "invalid_data_type",
+                        "message": f"字段 {field} 应该是数字，当前值: {value}"
+                    })
+            
+            elif field == "rank_type":
+                # rank_type应该是数字字符串（通常是1-5）
+                try:
+                    rank = int(str(value))
+                    if rank < 1 or rank > 5:
+                        issues.append({
+                            "type": "invalid_value",
+                            "message": f"字段 {field} 应该是1-5之间的数字，当前值: {value}"
+                        })
+                except (ValueError, TypeError):
+                    issues.append({
+                        "type": "invalid_data_type",
+                        "message": f"字段 {field} 应该是数字，当前值: {value}"
+                    })
+            
+            elif field == "time":
+                # 检查时间格式（基本检查）
+                time_str = str(value)
+                if len(time_str) < 10:  # 至少应该有日期部分 YYYY-MM-DD
+                    issues.append({
+                        "type": "invalid_time_format",
+                        "message": f"时间格式不正确: {value}"
+                    })
+                elif not any(char in time_str for char in ['-', '/', ' ', ':']):
+                    issues.append({
+                        "type": "invalid_time_format",
+                        "message": f"时间格式不正确，缺少分隔符: {value}"
+                    })
+        
+        # 检查是否有重复的字段名（虽然在Python字典中不可能，但为了完整性）
+        if len(set(record.keys())) != len(record.keys()):
+            issues.append({
+                "type": "duplicate_fields",
+                "message": "记录中存在重复的字段名"
+            })
+        
+        return len(issues) == 0, issues
+        
+    except Exception as e:
+        issues.append({
+            "type": "validation_error",
+            "message": f"验证过程中发生错误: {str(e)}"
+        })
+        return False, issues
+
+
+def sanitize_filename(filename):
+    """
+    清理文件名中的非法字符，确保文件名在不同操作系统中都有效
+    
+    Args:
+        filename (str): 原始文件名
+        
+    Returns:
+        str: 清理后的安全文件名
+    """
+    try:
+        if not filename or not isinstance(filename, str):
+            return "untitled"
+        
+        # 移除或替换非法字符
+        # Windows和其他系统都不允许的字符
+        illegal_chars = ['<', '>', ':', '"', '|', '?', '*', '/', '\\']
+        
+        # 替换非法字符为下划线
+        sanitized = filename
+        for char in illegal_chars:
+            sanitized = sanitized.replace(char, '_')
+        
+        # 移除控制字符（ASCII 0-31）
+        sanitized = ''.join(char for char in sanitized if ord(char) >= 32)
+        
+        # 移除开头和结尾的空格和点号
+        sanitized = sanitized.strip(' .')
+        
+        # 检查Windows保留名称
+        reserved_names = [
+            'CON', 'PRN', 'AUX', 'NUL',
+            'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+            'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+        ]
+        
+        # 检查文件名（不包括扩展名）是否为保留名称
+        name_without_ext = sanitized.split('.')[0].upper()
+        if name_without_ext in reserved_names:
+            sanitized = f"_{sanitized}"
+        
+        # 限制文件名长度（Windows限制为255字符，但为了安全起见使用200）
+        if len(sanitized) > 200:
+            # 保留扩展名
+            if '.' in sanitized:
+                name_part, ext_part = sanitized.rsplit('.', 1)
+                max_name_length = 200 - len(ext_part) - 1  # -1 for the dot
+                sanitized = name_part[:max_name_length] + '.' + ext_part
+            else:
+                sanitized = sanitized[:200]
+        
+        # 如果清理后文件名为空，使用默认名称
+        if not sanitized or sanitized == '':
+            sanitized = "untitled"
+        
+        # 确保文件名不以点号开头（在某些系统中会被视为隐藏文件）
+        if sanitized.startswith('.'):
+            sanitized = '_' + sanitized
+        
+        return sanitized
+        
+    except Exception:
+        return "untitled"
