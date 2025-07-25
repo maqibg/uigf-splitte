@@ -7,6 +7,12 @@
 自用
 本项目为纯AI生成，文本有问题也懒得改能用就行
 
+![PixPin_2025-07-25_21-02-25](https://github.com/user-attachments/assets/0130b382-910c-4975-92e1-493644397e19)
+![PixPin_2025-07-25_21-02-41](https://github.com/user-attachments/assets/f99c8a8a-7ddc-434d-960e-07fbb8bd8dbe)
+![PixPin_2025-07-25_21-02-52](https://github.com/user-attachments/assets/7a18e542-4855-4720-9195-f8efa48f1d83)
+
+
+
 ## 功能特性
 
 - 🎮 **双游戏支持**：支持原神（UIGF格式）和崩坏：星穹铁道（SRGF格式）。
