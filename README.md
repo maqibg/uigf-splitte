@@ -52,7 +52,7 @@
 
 1. **克隆或下载项目**
    ```bash
-   git clone https://github.com/maqibg/yunzai-uigf-splitte.git
+   git clone https://github.com/maqibg/uigf-splitte.git
    cd yunzai-uigf-splitte
    ```
 
