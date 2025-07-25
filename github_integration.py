@@ -5,7 +5,7 @@ UIGF/SRGF 抽卡记录分离工具 - GitHub集成模块
 提供GitHub仓库链接跳转和相关功能
 
 by: 马乞
-GitHub: https://github.com/maqibg/yunzai-uigf-splitte
+GitHub: https://github.com/maqibg/uigf-splitte
 """
 
 import webbrowser
@@ -17,8 +17,8 @@ class GitHubIntegration:
     
     # 项目信息常量
     AUTHOR_NAME = "马乞"
-    REPO_URL = "https://github.com/maqibg/yunzai-uigf-splitte"
-    REPO_NAME = "yunzai-uigf-splitte"
+    REPO_URL = "https://github.com/maqibg/uigf-splitte"
+    REPO_NAME = "uigf-splitte"
     
     @staticmethod
     def open_github_repo():
